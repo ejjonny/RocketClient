@@ -7,11 +7,18 @@
 
 import Foundation
 import Combine
+#if os(macOS)
+import AppKit
+#else
 import UIKit
+#endif
 
 class ListingController {
-    let token: String
-    init(token: String) {
+    enum ListingError: Error {
+        case needAuthentication
+    }
+    let token: () -> String?
+    init(token: @escaping () -> String?) {
         self.token = token
     }
     var listings = [ListingResponse.ListingData.Listing]()
@@ -44,6 +51,11 @@ class ListingController {
             .eraseToAnyPublisher()
     }
     func getListings(after: Bool) -> AnyPublisher<ListingResponse, Error> {
+        guard let token = token(),
+              !token.isEmpty else {
+            return Fail(error: ListingError.needAuthentication)
+                .eraseToAnyPublisher()
+        }
         var components = URLComponents(url: URL(string: "https://oauth.reddit.com/hot")!, resolvingAgainstBaseURL: true)!
         components.queryItems = [URLQueryItem]()
         components.queryItems?.append(URLQueryItem(name: "limit", value: "25"))
@@ -57,7 +69,7 @@ class ListingController {
         return URLSession.shared
             .dataTaskPublisher(for: request)
             .tryMap {
-                print($0.0.prettyPrintedJSONString)
+                print($0.0.prettyPrintedJSONString ?? "")
                 return try JSONDecoder().decode(ListingResponse.self, from: $0.0)
             }
             .handleEvents(receiveOutput: { listings in
@@ -67,6 +79,11 @@ class ListingController {
             .eraseToAnyPublisher()
     }
     func voteCurrent(_ post: String, vote: Vote) -> AnyPublisher<Void, Error> {
+        guard let token = token(),
+              !token.isEmpty else {
+            return Fail(error: ListingError.needAuthentication)
+                .eraseToAnyPublisher()
+        }
         var request = URLRequest(url: URL(string: "https://oauth.reddit.com/api/vote?dir=\(vote.voteValue)&id=\(post)")!)
         request.httpMethod = "POST"
         request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

@@ -26,7 +26,7 @@ struct ListingViewEnvironment {
     let images: (ListingResponse) -> Effect<[(String, UIImage)], Error>
     let upvote: (String, Vote) -> Effect<Void, Error>
     let hapticNextFeedback: () -> ()
-    static func live(token: String) -> ListingViewEnvironment {
+    static func live(_ token: @escaping () -> String?) -> ListingViewEnvironment {
         let controller = ListingController(token: token)
         return ListingViewEnvironment(
             scheduler: AnySchedulerOf<DispatchQueue>(DispatchQueue.main),
@@ -46,8 +46,10 @@ struct ListingViewEnvironment {
                     .eraseToEffect()
             },
             hapticNextFeedback: {
+                #if os(iOS)
                 UIImpactFeedbackGenerator(style: .medium)
                     .impactOccurred()
+                #endif
             }
         )
     }
@@ -59,7 +61,8 @@ enum ListingViewAction {
     case next
     case last
     case upvoteCurrent
-    case upvoteCurrentResponse(Result<Void, Error>)
+    case voteResponse(Result<Void, Error>)
+    case downvoteCurrent
 }
 let listingViewReducer = Reducer<ListingViewState, ListingViewAction, ListingViewEnvironment> { state, action, environment in
     switch action {
@@ -121,23 +124,41 @@ let listingViewReducer = Reducer<ListingViewState, ListingViewAction, ListingVie
         let vote: Vote
         if listing.data.likes == true {
             vote = .unVote
+            state.listings[state.currentIndex].data.score -= Vote.upVote.voteValue
         } else {
+            state.listings[state.currentIndex].data.score += Vote.upVote.voteValue
             vote = .upVote
         }
-        state.listings[state.currentIndex].data.score += vote.voteValue
         state.listings[state.currentIndex].data.likes = vote.likesValue
         return environment
             .upvote(listing.data.name, vote)
             .catchToEffect()
             .receive(on: environment.scheduler)
-            .map(ListingViewAction.upvoteCurrentResponse)
+            .map(ListingViewAction.voteResponse)
             .eraseToEffect()
-    case .upvoteCurrentResponse(.success):
+    case .downvoteCurrent:
+        let listing = state.listings[state.currentIndex]
+        let vote: Vote
+        if listing.data.likes == false {
+            vote = .unVote
+            state.listings[state.currentIndex].data.score -= Vote.downVote.voteValue
+        } else {
+            vote = .downVote
+            state.listings[state.currentIndex].data.score += Vote.downVote.voteValue
+        }
+        state.listings[state.currentIndex].data.likes = vote.likesValue
+        return environment
+            .upvote(listing.data.name, vote)
+            .catchToEffect()
+            .receive(on: environment.scheduler)
+            .map(ListingViewAction.voteResponse)
+            .eraseToEffect()
+    case .voteResponse(.success):
         return .fireAndForget {
             environment
                 .hapticNextFeedback()
         }
-    case .upvoteCurrentResponse(.failure):
+    case .voteResponse(.failure):
         return .none
     }
 }

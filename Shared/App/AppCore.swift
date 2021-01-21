@@ -32,15 +32,9 @@ struct AppEnvironment {
     let listingEnvironment: ListingViewEnvironment
     static func live() -> AppEnvironment {
         let authEnv = AuthenticationEnvironment.live()
-        guard let token = authEnv.token() else {
-            return AppEnvironment(
-                authenticationEnvironment: AuthenticationEnvironment.live(),
-                listingEnvironment: ListingViewEnvironment.live(token: "")
-            )
-        }
         return AppEnvironment(
             authenticationEnvironment: .live(),
-            listingEnvironment: .live(token: token)
+            listingEnvironment: .live(authEnv.token)
         )
     }
 }
@@ -77,9 +71,11 @@ let appReducer = Reducer.combine(
                  .next,
                  .last,
                  .upvoteCurrent,
-                 .upvoteCurrentResponse:
+                 .downvoteCurrent,
+                 .voteResponse:
                 return .none
             }
         }
     }
 )
+.debug()

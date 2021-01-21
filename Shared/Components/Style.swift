@@ -18,3 +18,8 @@ extension Text {
             .foregroundColor(color)
     }
 }
+
+enum Style {
+    static let cornerRadius: CGFloat = 25.0
+    static let animation: Animation = .easeInOut
+}

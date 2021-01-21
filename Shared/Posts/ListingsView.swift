@@ -32,6 +32,9 @@ struct ListingsView: View {
                            let post = viewStore.listings[viewStore.currentIndex] {
                             PostView(post: post, image: imageForPost(post))
                                 .onTapGesture(count: 2) {
+                                    viewStore.send(.downvoteCurrent)
+                                }
+                                .onTapGesture {
                                     viewStore.send(.upvoteCurrent)
                                 }
                         }
