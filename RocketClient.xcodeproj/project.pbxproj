@@ -30,6 +30,8 @@
 		4E2683E325B6178900FF08C7 /* Authenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2683E125B6178900FF08C7 /* Authenticator.swift */; };
 		4E2683EA25B61BBA00FF08C7 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 4E2683E925B61BBA00FF08C7 /* ComposableArchitecture */; };
 		4E2683F425B62DD500FF08C7 /* Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2683F325B62DD500FF08C7 /* Dictionary.swift */; };
+		4E3BC86025B918B900543A00 /* Bump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E3BC85F25B918B900543A00 /* Bump.swift */; };
+		4E3BC86125B918B900543A00 /* Bump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E3BC85F25B918B900543A00 /* Bump.swift */; };
 		4E49B58C25B6402E005BF993 /* Spinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E49B58B25B6402E005BF993 /* Spinner.swift */; };
 		4E5F9BF125B8261B00393C82 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5F9BF025B8261B00393C82 /* Store.swift */; };
 		4EDF39CB25B9050E002B7577 /* AppCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E0B244325B825AC00DCDFF1 /* AppCore.swift */; };
@@ -93,6 +95,7 @@
 		4E2683C825B6174200FF08C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4E2683E125B6178900FF08C7 /* Authenticator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Authenticator.swift; sourceTree = "<group>"; };
 		4E2683F325B62DD500FF08C7 /* Dictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dictionary.swift; sourceTree = "<group>"; };
+		4E3BC85F25B918B900543A00 /* Bump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bump.swift; sourceTree = "<group>"; };
 		4E49B58B25B6402E005BF993 /* Spinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spinner.swift; sourceTree = "<group>"; };
 		4E5F9BF025B8261B00393C82 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		4EDF39EF25B9069F002B7577 /* UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImage.swift; sourceTree = "<group>"; };
@@ -137,6 +140,7 @@
 			children = (
 				4E0B240F25B8247D00DCDFF1 /* ListingController.swift */,
 				4E0B23FF25B8241500DCDFF1 /* PostView.swift */,
+				4E3BC85F25B918B900543A00 /* Bump.swift */,
 				4E0B240925B8243500DCDFF1 /* ListingsCore.swift */,
 				4E01090525B65820008830A5 /* ListingsView.swift */,
 			);
@@ -440,6 +444,7 @@
 				4E2683CB25B6174200FF08C7 /* AuthenticationView.swift in Sources */,
 				4E2683F425B62DD500FF08C7 /* Dictionary.swift in Sources */,
 				4E0108FB25B6552D008830A5 /* UserDefault.swift in Sources */,
+				4E3BC86025B918B900543A00 /* Bump.swift in Sources */,
 				4E5F9BF125B8261B00393C82 /* Store.swift in Sources */,
 				4E2683C925B6174200FF08C7 /* RocketClientApp.swift in Sources */,
 				4E0B242D25B8250600DCDFF1 /* AuthenticationCore.swift in Sources */,
@@ -464,6 +469,7 @@
 				4EDF39DD25B9051D002B7577 /* PostView.swift in Sources */,
 				4EDF39D225B90515002B7577 /* Data.swift in Sources */,
 				4EDF39D825B9051B002B7577 /* Spinner.swift in Sources */,
+				4E3BC86125B918B900543A00 /* Bump.swift in Sources */,
 				4E2683CC25B6174200FF08C7 /* AuthenticationView.swift in Sources */,
 				4EDF39DB25B9051D002B7577 /* ListingsCore.swift in Sources */,
 				4EDF39DC25B9051D002B7577 /* ListingsView.swift in Sources */,

@@ -55,7 +55,8 @@ class Authenticator {
             parameters = [
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": redirectURI
+                "redirect_uri": redirectURI,
+                "duration": "permanent"
             ]
         case .refresh:
             parameters = [
@@ -73,9 +74,24 @@ class Authenticator {
                 self.refreshToken = response.refresh ?? ""
                 self.token = response.token
             })
+            .handleEvents(
+                receiveOutput: { response in
+                    self.refreshToken = response.refresh ?? ""
+                    self.token = response.token
+                }
+            )
             .map { _ in () }
             .eraseToAnyPublisher()
     }
+
+    enum AuthError: Error {
+        case badRequest
+    }
+    struct AuthResponseData: Codable {
+        let message: String
+        let error: Int
+    }
+
     struct AuthResponse: Codable {
 //        {
 //            "access_token": Your access token,

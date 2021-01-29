@@ -9,7 +9,7 @@ import SwiftUI
 
 extension Color {
     static let main: Color = .primary
-    static let alternate: Color = .blue
+    static let alternate: Color = Color(red: 47/255, green: 46/255, blue: 71/255)
 }
 extension Text {
     func localStyle(_ textStyle: Font.TextStyle, color: Color) -> Self {

@@ -69,7 +69,7 @@ class ListingController {
         return URLSession.shared
             .dataTaskPublisher(for: request)
             .tryMap {
-                print($0.0.prettyPrintedJSONString ?? "")
+//                print($0.0.prettyPrintedJSONString ?? "")
                 return try JSONDecoder().decode(ListingResponse.self, from: $0.0)
             }
             .handleEvents(receiveOutput: { listings in

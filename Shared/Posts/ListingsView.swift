@@ -12,10 +12,8 @@ import SwiftUI
 struct ListingsView: View {
     let store: Store<ListingViewState, ListingViewAction>
     @State var swipeOffset: CGFloat = 0
-    @State var transitionToLast = false
-    @State var transitionToNext = false
-    @State var returnToPlace = false
-    @State var transitionDuration: Double = 0.05
+    @State var interacting = false
+    @ObservedObject var viewStore: ViewStore<ListingViewState, ListingViewAction>
     func imageForPost(_ post: ListingResponse.ListingData.Listing) -> UIImage? {
         guard let id = post.data.preview?.images.first?.id,
               let image = ViewStore(store).images[id] else {
@@ -23,102 +21,86 @@ struct ListingsView: View {
         }
         return image.image
     }
+    init(store: Store<ListingViewState, ListingViewAction>) {
+        self.store = store
+        self.viewStore = ViewStore(store)
+    }
+    func postOffset(_ currentIndex: Int, geometry: GeometryProxy) -> CGFloat {
+        if currentIndex == 0 {
+            return 0
+        } else if currentIndex == 1 {
+            return -geometry.size.height
+        } else {
+            return -(geometry.size.height * 2)
+        }
+    }
     var body: some View {
-        WithViewStore(store) { viewStore in
-            ZStack {
+        ZStack {
+            if viewStore.listings.isEmpty {
+                Spinner(lineWidth: 10)
+                    .frame(height: 70)
+            } else {
                 GeometryReader { geometry in
-                    ZStack {
-                        if viewStore.listings.indices.contains(viewStore.currentIndex),
-                           let post = viewStore.listings[viewStore.currentIndex] {
-                            PostView(post: post, image: imageForPost(post))
-                                .onTapGesture(count: 2) {
-                                    viewStore.send(.downvoteCurrent)
-                                }
-                                .onTapGesture {
-                                    viewStore.send(.upvoteCurrent)
-                                }
-                        }
-                        if viewStore.listings.indices.contains(viewStore.currentIndex + 1),
-                            let nextPost = viewStore.listings[viewStore.currentIndex + 1] {
-                            PostView(post: nextPost, image: imageForPost(nextPost))
-                                .offset(y: geometry.size.height)
-                                .transition(AnyTransition.move(edge: .bottom).animation(.default))
-                        }
-                        if viewStore.listings.indices.contains(viewStore.currentIndex - 1),
-                            let lastPost = viewStore.listings[viewStore.currentIndex - 1] {
-                            PostView(post: lastPost, image: imageForPost(lastPost))
-                                .offset(y: -geometry.size.height)
-                        }
-                        if viewStore.listings.indices.contains(viewStore.currentIndex - 2),
-                            let lastLastPost = viewStore.listings[viewStore.currentIndex - 2] {
-                            PostView(post: lastLastPost, image: imageForPost(lastLastPost))
-                                .offset(y: -geometry.size.height * 2)
-                        }
-                        if viewStore.listings.indices.contains(viewStore.currentIndex + 2),
-                            let nextNextPost = viewStore.listings[viewStore.currentIndex + 2] {
-                            PostView(post: nextNextPost, image: imageForPost(nextNextPost))
-                                .offset(y: geometry.size.height * 2)
+                    VStack(spacing: 0) {
+                        ForEach(viewStore.currentIndex - 2...viewStore.currentIndex + 2, id: \.self) { index in
+                            if viewStore.listings.indices.contains(index) {
+                                PostView(post: viewStore.listings[index], image: imageForPost(viewStore.listings[index]))
+                                    .padding(10)
+                                    .frame(height: geometry.size.height)
+                                    .onTapGesture(count: 2) {
+                                        guard index == viewStore.currentIndex else { return }
+                                        viewStore.send(.downvoteCurrent)
+                                    }
+                                    .onTapGesture(count: 1) {
+                                        guard index == viewStore.currentIndex else { return }
+                                        viewStore.send(.upvoteCurrent)
+                                    }
+                            } else {
+                                EmptyView()
+                            }
                         }
                     }
                     .offset(y: swipeOffset)
-                    .offset(y: transitionToNext ? -geometry.size.height : 0)
-                    .offset(y: transitionToLast ? geometry.size.height : 0)
-                    .animation((transitionToNext || returnToPlace || transitionToLast) ? Animation.easeInOut(duration: transitionDuration) : nil)
+                    .offset(y: postOffset(viewStore.currentIndex, geometry: geometry))
+                    .animation(.spring(response: interacting ? 0.1 : 0.2, dampingFraction: 0.75, blendDuration: 0.25))
                     .gesture(
                         DragGesture(minimumDistance: 5)
                             .onChanged { state in
+                                interacting = true
                                 let translation = state.location.y - state.startLocation.y
                                 if translation.sign == .minus,
                                    !viewStore.listings.indices.contains(viewStore.currentIndex + 1) {
-                                    swipeOffset = translation - (translation * 0.6)
+                                    swipeOffset = translation * 0.2
                                     return
                                 } else if translation.sign == .plus,
                                           !viewStore.listings.indices.contains(viewStore.currentIndex - 1) {
-                                    swipeOffset = translation - (translation * 0.6)
+                                    swipeOffset = translation * 0.2
                                     return
                                 }
                                 swipeOffset = state.location.y - state.startLocation.y
                             }
                             .onEnded { state in
+                                interacting = false
                                 let translation = state.location.y - state.startLocation.y
                                 swipeOffset = 0
                                 guard abs(translation) > 100 else {
-                                    returnToPlace = true
                                     return
                                 }
                                 if translation.sign == .minus,
                                    viewStore.listings.indices.contains(viewStore.currentIndex + 1) {
-                                    transitionToNext = true
+                                    viewStore.send(.next)
                                 } else if translation.sign == .plus,
                                           viewStore.listings.indices.contains(viewStore.currentIndex - 1) {
-                                    transitionToLast = true
-                                } else {
-                                    returnToPlace = true
+                                    viewStore.send(.last)
                                 }
                             }
                     )
-                    .onReceive(Just($transitionToNext).delay(for: .seconds(transitionDuration), scheduler: DispatchQueue.main)) { next in
-                        guard next.wrappedValue else {
-                            return
-                        }
-                        transitionToNext = false
-                        viewStore.send(.next)
-                    }
-                    .onReceive(Just($returnToPlace).delay(for: .seconds(transitionDuration), scheduler: DispatchQueue.main)) { _ in
-                        returnToPlace = false
-                    }
-                    .onReceive(Just($transitionToLast).delay(for: .seconds(transitionDuration), scheduler: DispatchQueue.main)) { last in
-                        guard last.wrappedValue else {
-                            return
-                        }
-                        transitionToLast = false
-                        viewStore.send(.last)
-                    }
                 }
+                .padding([.top, .bottom], 20)
             }
-            .onAppear {
-                viewStore.send(.getListings(after: false))
-            }
+        }
+        .onAppear {
+            viewStore.send(.getListings(after: false))
         }
     }
 }
@@ -185,6 +167,7 @@ struct ListingResponse: Codable, Equatable {
                 let crosspost_parent_list: [ListingData]?
                 let name: String
                 var likes: Bool?
+                let subreddit: String
             }
             let kind: String
             var data: ListingData

@@ -28,45 +28,39 @@ struct PostView: View {
                     .bold()
                     .frame(maxWidth: .infinity, alignment: .leading)
                 HStack {
-                    Text(post.data.author)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .bold()
-                        .foregroundColor(.main)
+                    VStack {
+                        Text("r/\(post.data.subreddit)")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .bold()
+                            .foregroundColor(.main)
+                        Spacer()
+                            .frame(height: 5)
+                        Text("u/\(post.data.author)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .bold()
+                            .foregroundColor(.main)
+                    }
+                    .frame(alignment: .leading)
+                    .padding(10)
                     Spacer()
-                    Text("\(post.data.score)")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .bold()
-                        .foregroundColor(.main)
-                        .overlay(
-                            Text("\(post.data.score)")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .bold()
-                                .foregroundColor(.main)
-                                .offset(y: post.data.likes == nil ? 0 : -20)
-                                .opacity(post.data.likes == nil ? 1 : 0)
-                                .scaleEffect(post.data.likes == nil ? 1 : 4)
-                                .rotationEffect(Angle(degrees: post.data.likes == nil ? 0 : -10), anchor: .center)
-                                .animation(post.data.likes == nil ? nil : Style.animation)
-                        )
-                        .padding(10)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                                    .foregroundColor(.alternate)
-                                    .shadow(color: .alternate, radius: 5, x: -5, y: -5)
-                                    .blendMode(.screen)
-                                    .opacity(0.2)
-                                RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                                    .foregroundColor(.alternate)
-                                    .shadow(color: .black, radius: 5, x: 5, y: 5)
-                                    .opacity(0.2)
-                                RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                                    .foregroundColor(.alternate)
-                                    .blendMode(voteBlendMode)
-                                    .opacity(0.2)
-                            }
-                        )
+                    ZStack {
+                        Text("\(post.data.score)")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .bold()
+                            .foregroundColor(.main)
+                            .frame(maxHeight: .infinity)
+                            .padding(10)
+                        Text("\(post.data.score)")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .bold()
+                            .foregroundColor(.main)
+                            .offset(y: post.data.likes == nil ? 0 : -20)
+                            .opacity(post.data.likes == nil ? 1 : 0)
+                            .scaleEffect(post.data.likes == nil ? 1 : 4)
+                            .rotationEffect(Angle(degrees: post.data.likes == nil ? 0 : -10), anchor: .center)
+                    }
                 }
+                .frame(maxHeight: 70)
                 if let image = image {
                     #if os(macOS)
                     Image(nsImage: image)
@@ -81,6 +75,5 @@ struct PostView: View {
             }
             .padding(20)
         }
-        .padding(10)
     }
 }

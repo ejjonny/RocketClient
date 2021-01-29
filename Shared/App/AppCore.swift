@@ -78,4 +78,3 @@ let appReducer = Reducer.combine(
         }
     }
 )
-.debug()
