@@ -26,7 +26,7 @@ struct AuthenticationView: View {
                 case .showSuccess:
                     VStack {
                         Text("We're in!")
-                            .font(.system(size: 70, weight: .bold, design: .rounded))
+                            .font(.system(size: 70, weight: .bold, design: .main))
                             .bold()
                             .lineLimit(nil)
                             .foregroundColor(.main)
@@ -36,7 +36,7 @@ struct AuthenticationView: View {
                 case .error:
                     VStack {
                         Text("Something went wrong!")
-                            .font(.system(size: 70, weight: .bold, design: .rounded))
+                            .font(.system(size: 70, weight: .bold, design: .main))
                             .bold()
                             .lineLimit(nil)
                             .foregroundColor(.main)
@@ -58,7 +58,7 @@ struct AuthenticationView: View {
                 case .loading:
                     VStack {
                         Text("Sign in using your browser")
-                            .font(.system(size: 70, weight: .bold, design: .rounded))
+                            .font(.system(size: 70, weight: .bold, design: .main))
                             .bold()
                             .lineLimit(nil)
                             .foregroundColor(.main)
@@ -81,7 +81,7 @@ struct AuthenticationView: View {
                     VStack {
                         Spacer()
                         Text("Let's set things up!\n\nSign in using your browser")
-                            .font(.system(size: 70, weight: .bold, design: .rounded))
+                            .font(.system(size: 70, weight: .bold, design: .main))
                             .multilineTextAlignment(.leading)
                             .foregroundColor(.main)
                             .frame(maxWidth: .infinity)

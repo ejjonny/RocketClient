@@ -70,9 +70,9 @@ let appReducer = Reducer.combine(
                  .getListings,
                  .next,
                  .last,
-                 .upvoteCurrent,
-                 .downvoteCurrent,
-                 .voteResponse:
+                 .getCommentsForCurrent,
+                 .getCommentsResponse,
+                 .postAction:
                 return .none
             }
         }

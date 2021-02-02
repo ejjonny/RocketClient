@@ -14,13 +14,6 @@ struct ListingsView: View {
     @State var swipeOffset: CGFloat = 0
     @State var interacting = false
     @ObservedObject var viewStore: ViewStore<ListingViewState, ListingViewAction>
-    func imageForPost(_ post: ListingResponse.ListingData.Listing) -> UIImage? {
-        guard let id = post.data.preview?.images.first?.id,
-              let image = ViewStore(store).images[id] else {
-            return nil
-        }
-        return image.image
-    }
     init(store: Store<ListingViewState, ListingViewAction>) {
         self.store = store
         self.viewStore = ViewStore(store)
@@ -41,28 +34,20 @@ struct ListingsView: View {
                     .frame(height: 70)
             } else {
                 GeometryReader { geometry in
+                    ZStack {
                     VStack(spacing: 0) {
-                        ForEach(viewStore.currentIndex - 2...viewStore.currentIndex + 2, id: \.self) { index in
-                            if viewStore.listings.indices.contains(index) {
-                                PostView(post: viewStore.listings[index], image: imageForPost(viewStore.listings[index]))
-                                    .padding(10)
-                                    .frame(height: geometry.size.height)
-                                    .onTapGesture(count: 2) {
-                                        guard index == viewStore.currentIndex else { return }
-                                        viewStore.send(.downvoteCurrent)
-                                    }
-                                    .onTapGesture(count: 1) {
-                                        guard index == viewStore.currentIndex else { return }
-                                        viewStore.send(.upvoteCurrent)
-                                    }
-                            } else {
-                                EmptyView()
-                            }
-                        }
+                        ForEachStore(
+                            store.scope(
+                                state: \.currentListings,
+                                action: ListingViewAction.postAction(index:action:)
+                            ),
+                            content: PostView.init(store:)
+                        )
+                        .frame(height: geometry.size.height)
                     }
                     .offset(y: swipeOffset)
                     .offset(y: postOffset(viewStore.currentIndex, geometry: geometry))
-                    .animation(.spring(response: interacting ? 0.1 : 0.2, dampingFraction: 0.75, blendDuration: 0.25))
+                    .animation(.spring(response: interacting ? 0.1 : 0.15, dampingFraction: 0.75, blendDuration: 0.25))
                     .gesture(
                         DragGesture(minimumDistance: 5)
                             .onChanged { state in
@@ -96,7 +81,15 @@ struct ListingsView: View {
                             }
                     )
                 }
-                .padding([.top, .bottom], 20)
+//                    Button(action: {
+//                        viewStore.send(.getCommentsForCurrent)
+//                    }, label: {
+//                        Rectangle()
+//                            .foregroundColor(.red)
+//                            .frame(width: 100, height: 100)
+//                    })
+                }
+//                .padding([.top, .bottom], 20)
             }
         }
         .onAppear {
@@ -166,6 +159,7 @@ struct ListingResponse: Codable, Equatable {
                 let title: String
                 let crosspost_parent_list: [ListingData]?
                 let name: String
+                let id: String
                 var likes: Bool?
                 let subreddit: String
             }

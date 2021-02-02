@@ -10,9 +10,40 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ListingViewState: Equatable {
-    var listings = [ListingResponse.ListingData.Listing]()
+    var listings = [PostState]()
+    var viableRange: ClosedRange<Int>? {
+        guard [0, 1, 2, 3, 4].allSatisfy(listings.indices.contains) else {
+            return nil
+        }
+        let lowerBound: Int
+        if listings.indices.contains(currentIndex - 2) {
+            lowerBound = currentIndex - 2
+        } else if listings.indices.contains(currentIndex - 1) {
+            lowerBound = currentIndex - 1
+        } else {
+            lowerBound = 0
+        }
+        let upperBound: Int
+        if listings.indices.contains(currentIndex + 2) {
+            upperBound = currentIndex + 2
+        } else if listings.indices.contains(currentIndex + 1) {
+            upperBound = currentIndex + 1
+        } else {
+            upperBound = 0
+        }
+        return lowerBound...upperBound
+    }
+    var currentListings: [PostState] {
+        get {
+            guard let range = viableRange else { return [] }
+            return Array(listings[range])
+        }
+        set {
+            guard let range = viableRange else { return }
+            listings.replaceSubrange(range, with: newValue)
+        }
+    }
     var currentIndex: Int = 0
-    var images = [String: EquatableImageBox]()
 }
 struct EquatableImageBox: Equatable {
     let image: UIImage
@@ -24,8 +55,9 @@ struct ListingViewEnvironment {
     let scheduler: AnySchedulerOf<DispatchQueue>
     let listings: (Bool) -> Effect<ListingResponse, Error>
     let images: (ListingResponse) -> Effect<[(String, UIImage)], Error>
-    let upvote: (String, Vote) -> Effect<Void, Error>
+    let getComments: (String) -> Effect<[String], Error>
     let hapticNextFeedback: () -> ()
+    let postEnvironment: PostEnvironment
     static func live(_ token: @escaping () -> String?) -> ListingViewEnvironment {
         let controller = ListingController(token: token)
         return ListingViewEnvironment(
@@ -40,125 +72,107 @@ struct ListingViewEnvironment {
                     .loadImages(listings: $0)
                     .eraseToEffect()
             },
-            upvote: {
+            getComments: {
                 controller
-                    .voteCurrent($0, vote: $1)
+                    .getComments(articleID: $0)
                     .eraseToEffect()
             },
             hapticNextFeedback: {
                 #if os(iOS)
-                UIImpactFeedbackGenerator(style: .medium)
+                UIImpactFeedbackGenerator(style: .light)
                     .impactOccurred()
                 #endif
-            }
+            },
+            postEnvironment: PostEnvironment.live(controller)
         )
     }
 }
 enum ListingViewAction {
     case getListings(after: Bool)
     case listingsResponse(Result<ListingResponse, Error>)
+    case getCommentsForCurrent
+    case getCommentsResponse(Result<[String], Error>)
     case imagesResponse(Result<[(String, UIImage)], Error>)
     case next
     case last
-    case upvoteCurrent
-    case voteResponse(Result<Void, Error>)
-    case downvoteCurrent
+    case postAction(index: Int, action: PostAction)
 }
-let listingViewReducer = Reducer<ListingViewState, ListingViewAction, ListingViewEnvironment> { state, action, environment in
-    switch action {
-    case let .getListings(after):
-        return environment
+let listingViewReducer = Reducer.combine(
+    postReducer.forEach(
+        state: \.currentListings,
+        action: /ListingViewAction.postAction(index: action:),
+        environment: { $0.postEnvironment }
+    ),
+    Reducer<ListingViewState, ListingViewAction, ListingViewEnvironment> { state, action, environment in
+        switch action {
+        case let .getListings(after):
+            return environment
                 .listings(after)
                 .catchToEffect()
                 .receive(on: environment.scheduler)
                 .map(ListingViewAction.listingsResponse)
                 .eraseToEffect()
-    case let .listingsResponse(.success(listings)):
-        state.listings.append(contentsOf: listings.data.children)
-        return environment
-            .images(listings)
-            .catchToEffect()
-            .receive(on: environment.scheduler)
-            .map(ListingViewAction.imagesResponse)
-            .eraseToEffect()
-    case let .listingsResponse(.failure(error)):
-        print(error)
-        return .none
-    case let .imagesResponse(.success(images)):
-        images.forEach {
-            state.images[$0.0] = EquatableImageBox(image: $0.1)
-        }
-        return .none
-    case .imagesResponse(.failure):
-        print("Images failed")
-        return .none
-    case .next:
-        guard state.listings.indices.contains(state.currentIndex + 1) else {
+        case .getCommentsForCurrent:
+            let listing = state.listings[state.currentIndex]
+            return environment
+                .getComments(listing.post.data.id)
+                .catchToEffect()
+                .receive(on: environment.scheduler)
+                .map(ListingViewAction.getCommentsResponse)
+                .eraseToEffect()
+        case let .getCommentsResponse(result):
+            print(result)
             return .none
-        }
-        var effects = [Effect<ListingViewAction, Never>]()
-        if state.listings.count - state.currentIndex < 5 {
+        case let .listingsResponse(.success(listings)):
+            state.listings.append(contentsOf: listings.data.children.map(PostState.init(post:)))
+            return environment
+                .images(listings)
+                .catchToEffect()
+                .receive(on: environment.scheduler)
+                .map(ListingViewAction.imagesResponse)
+                .eraseToEffect()
+        case let .listingsResponse(.failure(error)):
+            print(error)
+            return .none
+        case let .imagesResponse(.success(images)):
+            images.forEach { imageID, image in
+                if let postIndex = state.listings.firstIndex(where: { $0.post.data.preview?.images.first?.id == imageID }) {
+                    state.listings[postIndex] = PostState(post: state.listings[postIndex].post, image: EquatableImageBox(image: image))
+                }
+            }
+            return .none
+        case .imagesResponse(.failure):
+            print("Images failed")
+            return .none
+        case .next:
+            guard state.listings.indices.contains(state.currentIndex + 1) else {
+                return .none
+            }
+            var effects = [Effect<ListingViewAction, Never>]()
+            if state.listings.count - state.currentIndex < 5 {
+                effects.append(
+                    Just(ListingViewAction.getListings(after: true))
+                        .receive(on: environment.scheduler)
+                        .eraseToEffect()
+                )
+            }
+            state.currentIndex = state.currentIndex + 1
             effects.append(
-                Just(ListingViewAction.getListings(after: true))
-                    .receive(on: environment.scheduler)
-                    .eraseToEffect()
+                .fireAndForget {
+                    environment.hapticNextFeedback()
+                }
             )
-        }
-        state.currentIndex = state.currentIndex + 1
-        effects.append(
-            .fireAndForget {
+            return Effect.merge(effects)
+        case .last:
+            guard state.listings.indices.contains(state.currentIndex - 1) else {
+                return .none
+            }
+            state.currentIndex = state.currentIndex - 1
+            return .fireAndForget {
                 environment.hapticNextFeedback()
             }
-        )
-        return Effect.merge(effects)
-    case .last:
-        guard state.listings.indices.contains(state.currentIndex - 1) else {
+        case .postAction:
             return .none
         }
-        state.currentIndex = state.currentIndex - 1
-        return .fireAndForget {
-            environment.hapticNextFeedback()
-        }
-    case .upvoteCurrent:
-        let listing = state.listings[state.currentIndex]
-        let vote: Vote
-        if listing.data.likes == true {
-            vote = .unVote
-            state.listings[state.currentIndex].data.score -= Vote.upVote.voteValue
-        } else {
-            state.listings[state.currentIndex].data.score += Vote.upVote.voteValue
-            vote = .upVote
-        }
-        state.listings[state.currentIndex].data.likes = vote.likesValue
-        return environment
-            .upvote(listing.data.name, vote)
-            .catchToEffect()
-            .receive(on: environment.scheduler)
-            .map(ListingViewAction.voteResponse)
-            .eraseToEffect()
-    case .downvoteCurrent:
-        let listing = state.listings[state.currentIndex]
-        let vote: Vote
-        if listing.data.likes == false {
-            vote = .unVote
-            state.listings[state.currentIndex].data.score -= Vote.downVote.voteValue
-        } else {
-            vote = .downVote
-            state.listings[state.currentIndex].data.score += Vote.downVote.voteValue
-        }
-        state.listings[state.currentIndex].data.likes = vote.likesValue
-        return environment
-            .upvote(listing.data.name, vote)
-            .catchToEffect()
-            .receive(on: environment.scheduler)
-            .map(ListingViewAction.voteResponse)
-            .eraseToEffect()
-    case .voteResponse(.success):
-        return .fireAndForget {
-            environment
-                .hapticNextFeedback()
-        }
-    case .voteResponse(.failure):
-        return .none
     }
-}
+)

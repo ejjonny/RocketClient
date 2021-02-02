@@ -69,14 +69,15 @@ class Authenticator {
         request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
         return URLSession.shared
             .dataTaskPublisher(for: request)
-            .tryMap { try JSONDecoder().decode(AuthResponse.self, from: $0.0) }
-            .handleEvents(receiveOutput: { response in
-                self.refreshToken = response.refresh ?? ""
-                self.token = response.token
-            })
+            .tryMap {
+                try JSONDecoder().decode(AuthResponse.self, from: $0.0)
+            }
             .handleEvents(
                 receiveOutput: { response in
-                    self.refreshToken = response.refresh ?? ""
+                    if let refresh = response.refresh,
+                       !refresh.isEmpty {
+                        self.refreshToken = response.refresh
+                    }
                     self.token = response.token
                 }
             )

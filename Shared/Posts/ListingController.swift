@@ -37,6 +37,13 @@ class ListingController {
             .collect()
             .eraseToAnyPublisher()
     }
+    func tokenIsValid() -> Bool {
+        guard let token = token(),
+              !token.isEmpty else {
+            return false
+        }
+        return true
+    }
     func imagePublisher( id: String, _ url: String) -> AnyPublisher<(String, UIImage), Error>? {
         guard let url = URL(string: url.replacingOccurrences(of: "&amp;", with: "&")) else {
             return nil
@@ -51,8 +58,7 @@ class ListingController {
             .eraseToAnyPublisher()
     }
     func getListings(after: Bool) -> AnyPublisher<ListingResponse, Error> {
-        guard let token = token(),
-              !token.isEmpty else {
+        guard tokenIsValid() else {
             return Fail(error: ListingError.needAuthentication)
                 .eraseToAnyPublisher()
         }
@@ -65,7 +71,7 @@ class ListingController {
         }
         var request = URLRequest(url: components.url!)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token() ?? "")", forHTTPHeaderField: "Authorization")
         return URLSession.shared
             .dataTaskPublisher(for: request)
             .tryMap {
@@ -79,21 +85,49 @@ class ListingController {
             .eraseToAnyPublisher()
     }
     func voteCurrent(_ post: String, vote: Vote) -> AnyPublisher<Void, Error> {
-        guard let token = token(),
-              !token.isEmpty else {
+        guard tokenIsValid() else {
             return Fail(error: ListingError.needAuthentication)
                 .eraseToAnyPublisher()
         }
         var request = URLRequest(url: URL(string: "https://oauth.reddit.com/api/vote?dir=\(vote.voteValue)&id=\(post)")!)
         request.httpMethod = "POST"
-        request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.addValue("Bearer \(token() ?? "")", forHTTPHeaderField: "Authorization")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setValue("ios:\(Bundle.main.bundleIdentifier!):v0.0.1", forHTTPHeaderField: "User-Agent")
         return URLSession.shared
             .dataTaskPublisher(for: request)
-            .map {
-                print($0)
+            .map { _ in
+//                print($0)
                 return ()
+            }
+            .mapError { $0 }
+            .eraseToAnyPublisher()
+    }
+    func getComments(articleID: String) -> AnyPublisher<[String], Error> {
+        guard tokenIsValid() else {
+            return Fail(error: ListingError.needAuthentication)
+                .eraseToAnyPublisher()
+        }
+        let url = URL(string: "https://oauth.reddit.com/comments/\(articleID)")!
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
+        components.queryItems = [
+            URLQueryItem(name: "context", value: "1"),
+            URLQueryItem(name: "showedits", value: "true"),
+            URLQueryItem(name: "showmedia", value: "true"),
+            URLQueryItem(name: "showmore", value: "true"),
+            URLQueryItem(name: "showtitle", value: "true"),
+            URLQueryItem(name: "sort", value: "top"),
+            URLQueryItem(name: "theme", value: "default"),
+            URLQueryItem(name: "threaded", value: "true"),
+            URLQueryItem(name: "truncate", value: "10")
+        ]
+        var request = URLRequest(url: URL(string: "\(components.url!.absoluteString).json")!)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token() ?? "")", forHTTPHeaderField: "Authorization")
+        return URLSession.shared
+            .dataTaskPublisher(for: request)
+            .tryMap {
+                return try JSONDecoder().decode([String].self, from: $0.0)
             }
             .mapError { $0 }
             .eraseToAnyPublisher()
