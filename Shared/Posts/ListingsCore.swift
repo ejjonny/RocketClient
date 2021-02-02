@@ -174,5 +174,5 @@ let listingViewReducer = Reducer.combine(
         case .postAction:
             return .none
         }
-    }
+    }.debug()
 )

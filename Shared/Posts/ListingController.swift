@@ -52,6 +52,7 @@ class ListingController {
         request.httpMethod = "GET"
         return URLSession.shared
             .dataTaskPublisher(for: request)
+            .subscribe(on: DispatchQueue.global(qos: .background))
             .compactMap { UIImage(data: $0.0) }
             .mapError { error in error }
             .map { (id, $0) }
@@ -74,6 +75,7 @@ class ListingController {
         request.setValue("Bearer \(token() ?? "")", forHTTPHeaderField: "Authorization")
         return URLSession.shared
             .dataTaskPublisher(for: request)
+            .subscribe(on: DispatchQueue.global(qos: .background))
             .tryMap {
 //                print($0.0.prettyPrintedJSONString ?? "")
                 return try JSONDecoder().decode(ListingResponse.self, from: $0.0)
@@ -96,6 +98,7 @@ class ListingController {
         request.setValue("ios:\(Bundle.main.bundleIdentifier!):v0.0.1", forHTTPHeaderField: "User-Agent")
         return URLSession.shared
             .dataTaskPublisher(for: request)
+            .subscribe(on: DispatchQueue.global(qos: .background))
             .map { _ in
 //                print($0)
                 return ()
@@ -126,6 +129,7 @@ class ListingController {
         request.setValue("Bearer \(token() ?? "")", forHTTPHeaderField: "Authorization")
         return URLSession.shared
             .dataTaskPublisher(for: request)
+            .subscribe(on: DispatchQueue.global(qos: .background))
             .tryMap {
                 return try JSONDecoder().decode([String].self, from: $0.0)
             }

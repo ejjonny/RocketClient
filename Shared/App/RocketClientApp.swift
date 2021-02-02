@@ -15,12 +15,16 @@ struct RocketClientApp: App {
     var body: some Scene {
         WindowGroup {
             WithViewStore(store) { viewStore in
-                switch viewStore.authenticationState.authState {
-                case .authenticated:
-                    ListingsView(store: store.scope(state: \.listingState, action: { AppAction.listingAction($0) }))
-                        .background(Color.alternate.ignoresSafeArea())
-                default:
-                    AuthenticationView(store: store.scope(state: \.authenticationState, action: { AppAction.authenticationAction($0) }))
+                ZStack {
+                    Color.alternate
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .ignoresSafeArea()
+                    switch viewStore.authenticationState.authState {
+                    case .authenticated:
+                        ListingsView(store: store.scope(state: \.listingState, action: { AppAction.listingAction($0) }))
+                    default:
+                        AuthenticationView(store: store.scope(state: \.authenticationState, action: { AppAction.authenticationAction($0) }))
+                    }
                 }
             }
         }

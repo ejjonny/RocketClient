@@ -126,7 +126,7 @@ struct PostView: View {
                             .resizable()
                             .scaledToFit()
                         #else
-                        Image(uiImage: image)
+                        Image(uiImage: image.image)
                             .resizable()
                             .scaledToFit()
                         #endif
